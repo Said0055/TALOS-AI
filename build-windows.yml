@@ -1,4 +1,4 @@
-name: Build TALOS AI for Windows
+github/workflows/build-windows.yml
 on:
   workflow_dispatch:
   push:
