@@ -1,0 +1,1872 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TALOS AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <style>
+    :root {
+      --bg: #0a0908; --bg-elevated: #100f0d; --surface: #161412; --surface-hover: #1e1b18;
+      --card: #1a1714; --border: #2e2924; --border-light: #3d3630;
+      --primary: #c9a227; --primary-hover: #dbb43a; --primary-dim: #8b6914;
+      --primary-glow: rgba(201, 162, 39, 0.28); --accent: #e8c547;
+      --text: #f5f0e8; --text-secondary: #c9c0b0; --muted: #8a8070;
+      --success: #4ade80; --danger: #f87171; --info: #60a5fa;
+      --font: 'Inter', system-ui, sans-serif; --mono: 'JetBrains Mono', monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+    body { font-family: var(--font); background: var(--bg); color: var(--text); display: flex; -webkit-font-smoothing: antialiased; }
+
+    .sidebar {
+      width: 280px; background: linear-gradient(180deg, #100f0d, #0c0b0a); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; flex-shrink: 0; z-index: 20; transition: width .25s;
+    }
+    .sidebar.collapsed { width: 72px; }
+    .logo-area { padding: 18px 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); }
+    .logo-icon {
+      width: 40px; height: 40px; border-radius: 12px; background: linear-gradient(145deg, #1a1610, #0e0c0a);
+      border: 1px solid rgba(201,162,39,.35); display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 20px rgba(201,162,39,.15); flex-shrink: 0;
+    }
+    .logo-icon svg { width: 26px; height: 26px; }
+    .logo-text { font-size: 1.2rem; font-weight: 700; letter-spacing: .04em; white-space: nowrap; overflow: hidden; }
+    .logo-text .talos { background: linear-gradient(90deg, #e8c547, #c9a227, #a67c00); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .logo-text .ai { color: var(--muted); font-weight: 500; margin-left: 5px; letter-spacing: .08em; font-size: .95em; }
+
+    .new-chat-btn {
+      margin: 14px 12px 8px; display: flex; align-items: center; justify-content: center; gap: 10px;
+      padding: 12px 16px; background: linear-gradient(135deg, #c9a227, #a67c00); color: #0a0908;
+      border: none; border-radius: 12px; font-size: .875rem; font-weight: 700; cursor: pointer;
+      box-shadow: 0 4px 20px var(--primary-glow); transition: all .2s;
+    }
+    .new-chat-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(201,162,39,.4); }
+
+    .sidebar-search { margin: 0 12px 12px; position: relative; }
+    .sidebar-search input {
+      width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+      padding: 10px 12px 10px 36px; color: var(--text); font-size: .85rem; outline: none;
+    }
+    .sidebar-search input:focus { border-color: var(--primary); }
+    .sidebar-search input::placeholder { color: var(--muted); }
+    .sidebar-search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; color: var(--muted); pointer-events: none; }
+
+    .nav-section { padding: 0 8px; margin-bottom: 6px; }
+    .nav-label { font-size: .68rem; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); padding: 8px 12px 6px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px;
+      font-size: .875rem; font-weight: 500; color: var(--muted); cursor: pointer; transition: all .15s;
+      border: none; background: transparent; width: 100%; text-align: left;
+    }
+    .nav-item:hover { color: var(--text); background: var(--surface-hover); }
+    .nav-item.active { color: var(--accent); background: rgba(201,162,39,.1); box-shadow: inset 0 0 0 1px rgba(201,162,39,.2); }
+    .nav-item svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+    .role-pills { padding: 0 12px 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+    .role-pill {
+      font-size: .7rem; padding: 5px 10px; border-radius: 20px; border: 1px solid var(--border);
+      background: var(--surface); color: var(--muted); cursor: pointer; transition: all .15s; font-weight: 500;
+    }
+    .role-pill:hover { border-color: var(--primary-dim); color: var(--text); }
+    .role-pill.active { background: rgba(201,162,39,.15); border-color: var(--primary); color: var(--accent); }
+
+    .chat-history { flex: 1; overflow-y: auto; padding: 0 8px 12px; }
+    .chat-item {
+      display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px;
+      font-size: .85rem; color: var(--muted); cursor: pointer; transition: all .15s; margin-bottom: 2px;
+    }
+    .chat-item:hover { background: var(--surface-hover); color: var(--text); }
+    .chat-item.active { background: rgba(201,162,39,.08); color: var(--text); box-shadow: inset 0 0 0 1px rgba(201,162,39,.15); }
+    .chat-item .title { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .chat-item .delete-btn { opacity: 0; background: none; border: none; color: var(--muted); cursor: pointer; padding: 2px; display: flex; }
+    .chat-item:hover .delete-btn { opacity: 1; }
+    .chat-item .delete-btn:hover { color: var(--danger); }
+
+    .sidebar-footer { padding: 14px 16px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .version { font-size: .72rem; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+    .collapse-btn {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 8px; width: 32px; height: 32px;
+      display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--muted);
+    }
+    .collapse-btn:hover { color: var(--accent); }
+
+    .main {
+      flex: 1; display: flex; flex-direction: column; min-width: 0; height: 100%; position: relative;
+      background: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(201,162,39,.06), transparent 60%);
+    }
+    .header {
+      height: 56px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px 0 24px;
+      border-bottom: 1px solid var(--border); background: rgba(16,15,13,.8); backdrop-filter: blur(12px); flex-shrink: 0;
+    }
+    .header-title { font-weight: 600; font-size: .95rem; display: flex; align-items: center; gap: 10px; }
+    .role-badge {
+      font-size: .7rem; padding: 3px 10px; border-radius: 20px; background: rgba(201,162,39,.12);
+      color: var(--accent); border: 1px solid rgba(201,162,39,.25); font-weight: 600;
+    }
+    .header-actions { display: flex; align-items: center; gap: 6px; }
+    .icon-btn {
+      width: 36px; height: 36px; border-radius: 10px; border: 1px solid transparent; background: transparent;
+      color: var(--muted); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all .15s;
+    }
+    .icon-btn:hover { background: var(--surface); color: var(--accent); border-color: var(--border); }
+    .icon-btn.recording { color: var(--danger); background: rgba(248,113,113,.12); border-color: rgba(248,113,113,.3); animation: pulse 1.2s infinite; }
+    .icon-btn.speaking { color: var(--success); background: rgba(74,222,128,.1); border-color: rgba(74,222,128,.25); }
+
+    .content { flex: 1; overflow-y: auto; position: relative; }
+    .messages-wrap { max-width: 820px; margin: 0 auto; padding: 24px 20px 140px; min-height: 100%; display: flex; flex-direction: column; }
+
+    .empty-state {
+      flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 40px 20px; animation: fadeIn .45s ease;
+    }
+    .empty-state .hero-icon {
+      width: 80px; height: 80px; border-radius: 22px; background: linear-gradient(145deg, rgba(201,162,39,.15), rgba(139,105,20,.08));
+      border: 1px solid rgba(201,162,39,.25); display: flex; align-items: center; justify-content: center;
+      margin-bottom: 22px; box-shadow: 0 8px 40px rgba(201,162,39,.12);
+    }
+    .empty-state .hero-icon svg { width: 44px; height: 44px; }
+    .empty-state h2 {
+      font-size: 1.45rem; font-weight: 700; margin-bottom: 8px;
+      background: linear-gradient(90deg, #f5f0e8, #e8c547); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .empty-state p { font-size: .9rem; color: var(--muted); max-width: 420px; line-height: 1.55; margin-bottom: 24px; }
+    .suggestions { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; width: 100%; max-width: 560px; }
+    .suggestion {
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px;
+      text-align: left; cursor: pointer; transition: all .2s; font-size: .85rem; color: var(--text-secondary); line-height: 1.4;
+    }
+    .suggestion:hover { border-color: rgba(201,162,39,.5); background: rgba(201,162,39,.06); color: var(--text); transform: translateY(-2px); }
+    .suggestion strong { display: block; color: var(--accent); font-weight: 600; margin-bottom: 4px; font-size: .88rem; }
+
+    .msg { display: flex; gap: 14px; margin-bottom: 28px; animation: msgIn .35s ease; }
+    .msg.user { flex-direction: row-reverse; }
+    .avatar {
+      width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-top: 2px;
+    }
+    .avatar.bot { background: linear-gradient(145deg, #1a1610, #0e0c0a); border: 1px solid rgba(201,162,39,.4); box-shadow: 0 2px 12px var(--primary-glow); }
+    .avatar.bot svg { width: 18px; height: 18px; }
+    .avatar.user-av { background: var(--border); }
+    .msg-body { max-width: 78%; min-width: 60px; }
+    .bubble { padding: 14px 18px; border-radius: 16px; font-size: .925rem; line-height: 1.6; }
+    .msg.bot .bubble { background: var(--card); border: 1px solid var(--border); border-bottom-left-radius: 6px; }
+    .msg.user .bubble { background: linear-gradient(135deg, #c9a227, #a67c00); color: #0a0908; border-bottom-right-radius: 6px; box-shadow: 0 4px 20px rgba(201,162,39,.22); font-weight: 500; }
+    .msg.user .bubble p { margin: 0; }
+
+    .bubble .md p { margin: 0 0 .75em; } .bubble .md p:last-child { margin-bottom: 0; }
+    .bubble .md h1, .bubble .md h2, .bubble .md h3 { margin: 1em 0 .5em; font-weight: 600; color: var(--accent); }
+    .bubble .md h1 { font-size: 1.25rem; } .bubble .md h2 { font-size: 1.1rem; } .bubble .md h3 { font-size: 1rem; }
+    .bubble .md ul, .bubble .md ol { margin: .5em 0; padding-left: 1.4em; }
+    .bubble .md code { font-family: var(--mono); font-size: .85em; background: rgba(0,0,0,.4); padding: 2px 6px; border-radius: 5px; color: var(--accent); }
+    .bubble .md pre { background: #0a0908; border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; margin: .8em 0; position: relative; }
+    .bubble .md pre code { background: none; padding: 0; font-size: .82rem; color: var(--text-secondary); }
+    .bubble .md blockquote { border-left: 3px solid var(--primary); margin: .8em 0; padding: .3em 0 .3em 14px; color: var(--muted); }
+    .bubble .md a { color: var(--accent); }
+    .bubble .md table { border-collapse: collapse; margin: .8em 0; width: 100%; font-size: .88rem; }
+    .bubble .md th, .bubble .md td { border: 1px solid var(--border); padding: 8px 12px; }
+    .bubble .md th { background: rgba(201,162,39,.08); color: var(--accent); }
+
+    .file-chip {
+      display: inline-flex; align-items: center; gap: 8px; background: rgba(201,162,39,.1); border: 1px solid rgba(201,162,39,.25);
+      border-radius: 10px; padding: 8px 12px; font-size: .8rem; margin-bottom: 8px; color: var(--accent);
+    }
+    .file-chip svg { width: 16px; height: 16px; }
+
+    .msg-actions { display: flex; gap: 4px; margin-top: 8px; opacity: 0; transition: opacity .2s; }
+    .msg:hover .msg-actions { opacity: 1; }
+    .msg-actions button {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 5px 10px;
+      font-size: .75rem; color: var(--muted); cursor: pointer; display: flex; align-items: center; gap: 5px;
+    }
+    .msg-actions button:hover { color: var(--accent); border-color: var(--primary-dim); }
+
+    .typing-indicator { display: flex; gap: 5px; padding: 4px 0; }
+    .typing-indicator span { width: 7px; height: 7px; background: var(--primary); border-radius: 50%; animation: bounce 1.2s infinite ease-in-out; }
+    .typing-indicator span:nth-child(2) { animation-delay: .15s; }
+    .typing-indicator span:nth-child(3) { animation-delay: .3s; }
+
+    .input-area {
+      position: absolute; bottom: 0; left: 0; right: 0; padding: 12px 20px 18px;
+      background: linear-gradient(to top, var(--bg) 55%, transparent); pointer-events: none;
+    }
+    .input-container { max-width: 820px; margin: 0 auto; pointer-events: auto; }
+    .attach-bar {
+      display: none; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;
+    }
+    .attach-bar.show { display: flex; }
+    .attach-item {
+      display: flex; align-items: center; gap: 6px; background: var(--card); border: 1px solid var(--border);
+      border-radius: 8px; padding: 6px 10px; font-size: .78rem; color: var(--text-secondary);
+    }
+    .attach-item button { background: none; border: none; color: var(--muted); cursor: pointer; padding: 0 2px; font-size: 1rem; }
+    .attach-item button:hover { color: var(--danger); }
+
+    .input-box {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 12px 14px;
+      display: flex; align-items: flex-end; gap: 8px; box-shadow: 0 8px 40px rgba(0,0,0,.4); transition: border-color .2s, box-shadow .2s;
+    }
+    .input-box:focus-within { border-color: var(--primary); box-shadow: 0 8px 40px rgba(0,0,0,.4), 0 0 0 3px rgba(201,162,39,.12); }
+    .input-box textarea {
+      flex: 1; background: transparent; border: none; color: var(--text); font-size: .925rem; font-family: inherit;
+      resize: none; min-height: 24px; max-height: 160px; outline: none; line-height: 1.5; padding: 4px 0;
+    }
+    .input-box textarea::placeholder { color: var(--muted); }
+    .tool-btn {
+      width: 36px; height: 36px; border-radius: 10px; border: none; background: transparent; color: var(--muted);
+      display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all .15s; flex-shrink: 0;
+    }
+    .tool-btn:hover { background: var(--surface-hover); color: var(--text); }
+    .tool-btn.active { color: var(--accent); background: rgba(201,162,39,.12); }
+    .tool-btn.recording { color: var(--danger); background: rgba(248,113,113,.15); animation: pulse 1s infinite; }
+    .send-btn {
+      width: 40px; height: 40px; border-radius: 12px; background: linear-gradient(135deg, #c9a227, #a67c00);
+      border: none; color: #0a0908; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: all .2s; box-shadow: 0 4px 16px var(--primary-glow);
+    }
+    .send-btn:hover:not(:disabled) { transform: scale(1.05); }
+    .send-btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+    .input-hint { text-align: center; font-size: .72rem; color: var(--muted); margin-top: 10px; opacity: .85; }
+
+    .page { display: none; height: 100%; overflow-y: auto; }
+    .page.active { display: flex; flex-direction: column; }
+    .page-inner { max-width: 720px; margin: 0 auto; padding: 24px 20px 40px; width: 100%; }
+
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 22px; margin-bottom: 18px; }
+    .card h3 { font-size: 1rem; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; color: var(--accent); }
+    .card label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 7px; font-weight: 500; }
+    .card textarea, .card input, .card select {
+      width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px 14px; color: var(--text); font-size: .9rem; font-family: inherit; outline: none; margin-bottom: 14px;
+    }
+    .card textarea:focus, .card input:focus, .card select:focus { border-color: var(--primary); }
+    .card textarea { resize: vertical; min-height: 90px; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px; padding: 11px 20px; border-radius: 12px;
+      font-size: .875rem; font-weight: 600; border: none; cursor: pointer; transition: all .2s; font-family: inherit;
+    }
+    .btn-primary { background: linear-gradient(135deg, #c9a227, #a67c00); color: #0a0908; box-shadow: 0 4px 18px var(--primary-glow); }
+    .btn-primary:hover { transform: translateY(-1px); }
+    .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: var(--surface-hover); }
+    .btn:disabled { opacity: .5; cursor: not-allowed; transform: none !important; }
+
+    .info-box {
+      background: rgba(201,162,39,.06); border: 1px solid rgba(201,162,39,.18); border-radius: 12px;
+      padding: 14px 16px; font-size: .85rem; color: var(--muted); line-height: 1.55;
+    }
+    .info-box strong { color: var(--accent); }
+    .info-box.warn { background: rgba(248,113,113,.06); border-color: rgba(248,113,113,.2); }
+    .info-box.warn strong { color: var(--danger); }
+
+    .status-badge { display: inline-flex; align-items: center; gap: 6px; font-size: .78rem; padding: 4px 10px; border-radius: 20px; font-weight: 500; }
+    .status-badge.ok { background: rgba(74,222,128,.12); color: var(--success); }
+    .status-badge.err { background: rgba(248,113,113,.12); color: var(--danger); }
+
+    .gen-result { margin-top: 18px; border-radius: 14px; overflow: hidden; border: 1px solid var(--border); background: var(--surface); display: none; }
+    .gen-result img { width: 100%; display: block; }
+    .gen-result .meta { padding: 12px 16px; font-size: .82rem; color: var(--muted); display: flex; justify-content: space-between; align-items: center; }
+    .gen-loading { display: none; text-align: center; padding: 40px; color: var(--muted); }
+    .gen-loading .spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin .8s linear infinite; margin: 0 auto 14px; }
+
+    .project-list { display: flex; flex-direction: column; gap: 10px; }
+    .project-item {
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px;
+      display: flex; align-items: center; gap: 14px; cursor: pointer; transition: all .15s;
+    }
+    .project-item:hover { border-color: rgba(201,162,39,.35); background: var(--surface-hover); }
+    .project-item .icon { width: 40px; height: 40px; border-radius: 10px; background: rgba(201,162,39,.1); display: flex; align-items: center; justify-content: center; color: var(--accent); flex-shrink: 0; }
+    .project-item .info { flex: 1; min-width: 0; }
+    .project-item .info h4 { font-size: .9rem; font-weight: 600; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .project-item .info span { font-size: .78rem; color: var(--muted); }
+
+    .cmd-list { display: flex; flex-direction: column; gap: 8px; }
+    .cmd-item {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px;
+      display: flex; align-items: center; gap: 12px; font-size: .85rem;
+    }
+    .cmd-item code { font-family: var(--mono); color: var(--accent); flex: 1; }
+    .cmd-item .btn { padding: 6px 12px; font-size: .75rem; }
+
+    .toast {
+      position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px);
+      background: var(--card); border: 1px solid rgba(201,162,39,.3); color: var(--text);
+      padding: 12px 20px; border-radius: 12px; font-size: .875rem; box-shadow: 0 8px 32px rgba(0,0,0,.5);
+      z-index: 1000; opacity: 0; transition: all .3s; pointer-events: none;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+    .voice-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(10,9,8,.75); z-index: 100;
+      align-items: center; justify-content: center; flex-direction: column; gap: 16px;
+    }
+    .voice-overlay.show { display: flex; }
+    .voice-ring {
+      width: 100px; height: 100px; border-radius: 50%; border: 3px solid var(--primary);
+      display: flex; align-items: center; justify-content: center; animation: pulse 1.2s infinite;
+      background: rgba(201,162,39,.1);
+    }
+    .voice-ring svg { width: 40px; height: 40px; color: var(--accent); }
+    .voice-text { color: var(--text); font-size: 1rem; font-weight: 500; }
+    .voice-partial { color: var(--muted); font-size: .9rem; max-width: 400px; text-align: center; min-height: 1.4em; }
+
+    ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #2e2924; border-radius: 3px; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes msgIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes bounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-5px); } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .7; transform: scale(1.05); } }
+
+    .mobile-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 40; }
+    .mobile-overlay.show { display: block; }
+    .mobile-menu-btn {
+      display: none; width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border);
+      background: var(--surface); color: var(--text); align-items: center; justify-content: center; cursor: pointer;
+    }
+    .code-copy {
+      position: absolute; top: 8px; right: 8px; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 6px; padding: 4px 8px; font-size: .7rem; color: var(--muted); cursor: pointer; opacity: 0;
+    }
+    .bubble .md pre:hover .code-copy { opacity: 1; }
+    .code-copy:hover { color: var(--accent); }
+
+    @media (max-width: 768px) {
+      .sidebar { position: fixed; left: 0; top: 0; bottom: 0; transform: translateX(-100%); transition: transform .25s; z-index: 50; }
+      .sidebar.open { transform: translateX(0); }
+      .mobile-menu-btn { display: flex; }
+      .suggestions { grid-template-columns: 1fr; }
+      .msg-body { max-width: 88%; }
+      .role-pills { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="mobile-overlay" id="mobile-overlay" onclick="closeMobileSidebar()"></div>
+  <div class="voice-overlay" id="voice-overlay">
+    <div class="voice-ring">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg>
+    </div>
+    <div class="voice-text">Слушаю...</div>
+    <div class="voice-partial" id="voice-partial"></div>
+    <button class="btn btn-secondary" onclick="stopVoice()" style="margin-top:8px">Отмена</button>
+  </div>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="logo-area">
+      <div class="logo-icon">
+        <svg viewBox="0 0 48 48" fill="none">
+          <defs><linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#e8c547"/><stop offset="50%" stop-color="#c9a227"/><stop offset="100%" stop-color="#8b6914"/></linearGradient></defs>
+          <path d="M24 4L8 10v12c0 10 6.5 18.5 16 21 9.5-2.5 16-11 16-21V10L24 4z" fill="url(#g1)" opacity=".95"/>
+          <path d="M24 10L14 14v8c0 6.5 4 12 10 13.5 6-1.5 10-7 10-13.5v-8L24 10z" fill="#0a0908" opacity=".85"/>
+          <path d="M24 16v12M20 20h8M20 24h8" stroke="#e8c547" stroke-width="1.6" stroke-linecap="round"/>
+          <circle cx="24" cy="16" r="1.5" fill="#e8c547"/>
+        </svg>
+      </div>
+      <div class="logo-text"><span class="talos">TALOS</span><span class="ai">AI</span></div>
+    </div>
+
+    <button class="new-chat-btn" onclick="createNewChat()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
+      <span>Новый чат</span>
+    </button>
+
+    <div class="sidebar-search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      <input type="text" id="search-chats" placeholder="Поиск..." oninput="filterChats()" />
+    </div>
+
+    <div class="nav-label" style="padding-left:20px;">Режим</div>
+    <div class="role-pills" id="role-pills">
+      <button class="role-pill active" data-role="assistant" onclick="setRole('assistant')">Ассистент</button>
+      <button class="role-pill" data-role="programmer" onclick="setRole('programmer')">Программист</button>
+      <button class="role-pill" data-role="files" onclick="setRole('files')">Файлы</button>
+      <button class="role-pill" data-role="system" onclick="setRole('system')">Система</button>
+    </div>
+
+    <div class="nav-section">
+      <button class="nav-item active" data-page="chat" onclick="showPage('chat')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span>Чат</span>
+      </button>
+      <button class="nav-item" data-page="images" onclick="showPage('images')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+        <span>Изображения</span>
+      </button>
+      <button class="nav-item" data-page="video" onclick="showPage('video')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+        <span>Видео</span>
+      </button>
+      <button class="nav-item" data-page="files" onclick="showPage('files')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+        <span>Документы</span>
+      </button>
+      <button class="nav-item" data-page="system" onclick="showPage('system')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+        <span>Компьютер</span>
+      </button>
+      <button class="nav-item" data-page="projects" onclick="showPage('projects')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        <span>Проекты</span>
+      </button>
+      <button class="nav-item" data-page="settings" onclick="showPage('settings')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span>Настройки</span>
+      </button>
+    </div>
+
+    <div class="nav-label" style="padding-left:20px;">История</div>
+    <div class="chat-history" id="chat-history"></div>
+
+    <div class="sidebar-footer">
+      <div class="version">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2L4 6v6c0 5.25 3.5 9.75 8 11 4.5-1.25 8-5.75 8-11V6l-8-4z" fill="#c9a227"/></svg>
+        <span>TALOS AI</span>
+      </div>
+      <button class="collapse-btn" onclick="toggleSidebar()" title="Свернуть">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 19l-7-7 7-7M18 19l-7-7 7-7"/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <!-- CHAT -->
+    <div id="page-chat" class="page active">
+      <div class="header">
+        <div class="header-title">
+          <button class="mobile-menu-btn" onclick="openMobileSidebar()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg></button>
+          <span id="chat-title">Новый чат</span>
+          <span class="role-badge" id="role-badge">Ассистент</span>
+        </div>
+        <div class="header-actions">
+          <button class="icon-btn" id="voice-speak-btn" onclick="toggleSpeakLast()" title="Озвучить ответ">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+          </button>
+          <button class="icon-btn" onclick="exportChat()" title="Экспорт"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg></button>
+          <button class="icon-btn" onclick="clearCurrentChat()" title="Очистить"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+        </div>
+      </div>
+      <div class="content" id="chat-content">
+        <div class="messages-wrap">
+          <div class="empty-state" id="empty-state">
+            <div class="hero-icon">
+              <svg viewBox="0 0 48 48" fill="none">
+                <defs><linearGradient id="hg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#e8c547"/><stop offset="100%" stop-color="#8b6914"/></linearGradient></defs>
+                <path d="M24 4L8 10v12c0 10 6.5 18.5 16 21 9.5-2.5 16-11 16-21V10L24 4z" fill="url(#hg)"/>
+                <path d="M24 12L15 16v7c0 5.5 3.5 10 9 11.5 5.5-1.5 9-6 9-11.5v-7L24 12z" fill="#0a0908" opacity=".8"/>
+                <path d="M24 18v10M20 22h8M20 26h8" stroke="#e8c547" stroke-width="1.8" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <h2>TALOS AI</h2>
+            <p id="empty-desc">Страж знаний. Говори голосом, пиши код, анализируй файлы — выбери режим слева.</p>
+            <div class="suggestions" id="suggestions"></div>
+          </div>
+          <div id="messages-list"></div>
+        </div>
+      </div>
+      <div class="input-area">
+        <div class="input-container">
+          <div class="attach-bar" id="attach-bar"></div>
+          <div class="input-box">
+            <button class="tool-btn" title="Прикрепить файл" onclick="document.getElementById('file-input').click()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+            </button>
+            <input type="file" id="file-input" hidden multiple accept=".txt,.md,.csv,.json,.js,.ts,.py,.html,.css,.pdf,.doc,.docx,.xlsx,.xls" onchange="handleFiles(event)" />
+            <textarea id="chat-input" rows="1" placeholder="Напишите или нажмите 🎤..." onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+            <button class="tool-btn" id="mic-btn" title="Голосовой ввод" onclick="toggleVoice()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg>
+            </button>
+            <button class="send-btn" id="send-btn" onclick="sendMessage()" title="Отправить">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+            </button>
+          </div>
+          <div class="input-hint">🎤 голос · 📎 файлы · Enter — отправить · Shift+Enter — новая строка</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- IMAGES -->
+    <div id="page-images" class="page">
+      <div class="header"><div class="header-title"><button class="mobile-menu-btn" onclick="openMobileSidebar()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg></button>Генерация изображений</div></div>
+      <div class="page-inner">
+        <div class="card">
+          <label>Описание (что угодно — детально и на любом языке)</label>
+          <textarea id="img-prompt" rows="4" placeholder="Например: бронзовый гигант Талос охраняет берег Крита на закате, эпичный кинематографичный свет, 8k, сверхдетализация"></textarea>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div>
+              <label>Разрешение</label>
+              <select id="img-size">
+                <option value="1024x1024">1024×1024 (квадрат)</option>
+                <option value="1792x1024">1792×1024 (широкий)</option>
+                <option value="1024x1792">1024×1792 (портрет)</option>
+              </select>
+            </div>
+            <div>
+              <label>Качество</label>
+              <select id="img-quality">
+                <option value="standard">Standard</option>
+                <option value="hd">HD</option>
+              </select>
+            </div>
+          </div>
+          <label>Стиль (DALL·E 3)</label>
+          <select id="img-style">
+            <option value="vivid">Vivid (яркий)</option>
+            <option value="natural">Natural (натуральный)</option>
+          </select>
+          <label>Негативный промпт (что убрать)</label>
+          <input type="text" id="img-negative" placeholder="blurry, low quality, watermark, text..." />
+          <button class="btn btn-primary" id="img-gen-btn" onclick="generateImage()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg>
+            Создать изображение
+          </button>
+        </div>
+        <div class="gen-loading" id="img-loading"><div class="spinner"></div><div id="img-loading-text">Генерирую изображение...</div></div>
+        <div class="gen-result" id="img-result">
+          <img id="img-preview" alt="Generated" />
+          <div class="meta"><span id="img-meta">Готово</span><button class="btn btn-secondary" style="padding:6px 12px;font-size:.8rem" onclick="downloadImage()">Скачать</button></div>
+        </div>
+        <div class="info-box" style="margin-top:18px">
+          <strong>Как настроить:</strong> В Настройках укажите ключ для изображений.
+          Для OpenAI: Base URL <code>https://api.openai.com/v1</code>, модель <code>dall-e-3</code>.
+          Для OpenRouter: URL <code>https://openrouter.ai/api/v1</code>, модель <code>openai/dall-e-3</code> (нужен доступ к image models).
+          Размеры DALL·E 3: только 1024×1024, 1792×1024, 1024×1792.
+        </div>
+      </div>
+    </div>
+
+    <!-- VIDEO -->
+    <div id="page-video" class="page">
+      <div class="header"><div class="header-title"><button class="mobile-menu-btn" onclick="openMobileSidebar()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg></button>Генерация видео</div></div>
+      <div class="page-inner">
+        <div class="card">
+          <label>Описание сцены</label>
+          <textarea id="vid-prompt" rows="3" placeholder="Камера медленно облетает бронзового гиганта на скале у моря..."></textarea>
+          <label>Длительность</label>
+          <select id="vid-duration"><option value="3">3 с</option><option value="5" selected>5 с</option><option value="8">8 с</option><option value="10">10 с</option></select>
+          <button class="btn btn-primary" onclick="generateVideo()">Создать видео</button>
+        </div>
+        <div class="info-box">
+          <strong>Подключение:</strong> Нужен провайдер видео (Runway, Luma, Kling и т.д.) — укажите Base URL и ключ в Настройках. Большинство API асинхронные.
+        </div>
+      </div>
+    </div>
+
+    <!-- FILES PAGE -->
+    <div id="page-files" class="page">
+      <div class="header"><div class="header-title"><button class="mobile-menu-btn" onclick="openMobileSidebar()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg></button>Работа с документами</div></div>
+      <div class="page-inner">
+        <div class="card">
+          <h3>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+            Загрузить файл
+          </h3>
+          <p style="color:var(--muted);font-size:.85rem;margin-bottom:14px;line-height:1.5">
+            PDF, TXT, MD, CSV, JSON, код, таблицы. TALOS прочитает и сможет пересказать, проанализировать или ответить по содержимому.
+          </p>
+          <button class="btn btn-primary" onclick="document.getElementById('file-input-page').click()">
+            Выбрать файлы
+          </button>
+          <input type="file" id="file-input-page" hidden multiple accept=".txt,.md,.csv,.json,.js,.ts,.py,.html,.css,.pdf,.xlsx,.xls" onchange="handleFiles(event, true)" />
+          <div id="files-list" style="margin-top:16px"></div>
+        </div>
+        <div class="info-box">
+          <strong>Как пользоваться:</strong> загрузите файл здесь или через 📎 в чате, затем спросите: «перескажи», «найди ошибки», «сделай выводы по таблице».
+        </div>
+      </div>
+    </div>
+
+    <!-- SYSTEM / COMPUTER -->
+    <div id="page-system" class="page">
+      <div class="header"><div class="header-title"><button class="mobile-menu-btn" onclick="openMobileSidebar()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg></button>Управление компьютером</div></div>
+      <div class="page-inner">
+        <div class="info-box warn" style="margin-bottom:18px">
+          <strong>Ограничение браузера:</strong> HTML-страница не может открывать программы и выполнять команды на вашем ПК — это запрещено из соображений безопасности. Ниже — безопасный режим: TALOS предлагает команды, вы копируете и запускаете сами (или в терминале).
+        </div>
+        <div class="card">
+          <h3>Что умею в этом режиме</h3>
+          <ul style="color:var(--muted);font-size:.9rem;line-height:1.7;padding-left:1.2em">
+            <li>Подсказать команды для Windows / macOS / Linux</li>
+            <li>Найти, как открыть программу или файл</li>
+            <li>Составить скрипт (PowerShell, bash) под вашу задачу</li>
+            <li>Объяснить, что делает команда, до запуска</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Быстрые запросы</h3>
+          <div class="cmd-list">
+            <div class="cmd-item"><span style="color:var(--muted)">Открыть блокнот</span><button class="btn btn-secondary" onclick="askSystem('Как открыть Блокнот в Windows через командную строку?')">Спросить</button></div>
+            <div class="cmd-item"><span style="color:var(--muted)">Найти большие файлы</span><button class="btn btn-secondary" onclick="askSystem('Дай команду для поиска файлов больше 1 ГБ в домашней папке')">Спросить</button></div>
+            <div class="cmd-item"><span style="color:var(--muted)">Список процессов</span><button class="btn btn-secondary" onclick="askSystem('Как посмотреть список процессов и завершить зависший?')">Спросить</button></div>
+            <div class="cmd-item"><span style="color:var(--muted)">Создать папку проекта</span><button class="btn btn-secondary" onclick="askSystem('Команды: создать папку my-app, инициализировать git и package.json')">Спросить</button></div>
+          </div>
+        </div>
+        <div class="info-box">
+          Для <strong>реального</strong> управления ПК нужен отдельный агент (Electron / Python daemon) с вашим явным разрешением на каждую команду. В браузере это намеренно недоступно.
+        </div>
+      </div>
+    </div>
+
+    <!-- PROJECTS -->
+    <div id="page-projects" class="page">
+      <div class="header"><div class="header-title"><button class="mobile-menu-btn" onclick="openMobileSidebar()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg></button>Проекты</div></div>
+      <div class="page-inner">
+        <div class="project-list" id="project-list"></div>
+        <div id="projects-empty" class="card" style="text-align:center;padding:48px 20px;color:var(--muted);display:none">
+          <p>История чатов появится после использования.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="page-settings" class="page">
+      <div class="header"><div class="header-title"><button class="mobile-menu-btn" onclick="openMobileSidebar()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg></button>Настройки</div></div>
+      <div class="page-inner">
+        <div class="card">
+          <h3>Чат (LLM)</h3>
+          <label>Base URL</label>
+          <input type="text" id="set-chat-url" value="https://openrouter.ai/api/v1" />
+          <label>API Key</label>
+          <input type="password" id="set-chat-key" placeholder="sk-or-... или ключ" />
+          <label>Модель</label>
+          <input type="text" id="set-chat-model" value="openai/gpt-4o-mini" />
+          <label>System Prompt (базовый)</label>
+          <textarea id="set-system" rows="2">Ты — TALOS AI, надёжный персональный ассистент. Отвечай на русском, четко, структурировано. Используй Markdown.</textarea>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <button class="btn btn-secondary" onclick="testConnection()">Проверить соединение</button>
+            <span id="conn-status"></span>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Изображения</h3>
+          <label>Base URL</label>
+          <input type="text" id="set-img-url" value="https://api.openai.com/v1" placeholder="https://api.openai.com/v1" />
+          <label>API Key</label>
+          <input type="password" id="set-img-key" placeholder="sk-... (можно тот же, что для чата)" />
+          <label>Модель</label>
+          <input type="text" id="set-img-model" value="dall-e-3" placeholder="dall-e-3 или openai/dall-e-3" />
+          <div class="info-box" style="margin-top:4px">
+            <strong>OpenAI:</strong> URL <code>https://api.openai.com/v1</code>, модель <code>dall-e-3</code>.<br>
+            <strong>OpenRouter:</strong> URL <code>https://openrouter.ai/api/v1</code>, модель <code>openai/dall-e-3</code>.
+          </div>
+        </div>
+        <div class="card">
+          <h3>Видео</h3>
+          <label>Base URL</label>
+          <input type="text" id="set-vid-url" placeholder="https://api.provider.com/v1" />
+          <label>API Key</label>
+          <input type="password" id="set-vid-key" placeholder="ключ" />
+        </div>
+        <div class="card">
+          <h3>Голос</h3>
+          <label>Автоозвучка ответов</label>
+          <select id="set-auto-speak">
+            <option value="0">Выкл</option>
+            <option value="1">Вкл</option>
+          </select>
+          <label>Язык распознавания</label>
+          <select id="set-voice-lang">
+            <option value="ru-RU">Русский</option>
+            <option value="en-US">English</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="saveSettings()">Сохранить настройки</button>
+        <div class="info-box" style="margin-top:18px">
+          <strong>Рекомендация:</strong> OpenRouter — работает из браузера (CORS). OpenAI напрямую часто блокируется. Ключи только в localStorage.
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ========== State ==========
+    var chats = [];
+    var currentChatId = null;
+    var isGenerating = false;
+    var abortController = null;
+    var markedReady = false;
+    var currentRole = 'assistant';
+    var attachedFiles = [];
+    var recognition = null;
+    var isListening = false;
+    var isSpeaking = false;
+    var autoSpeak = false;
+
+    var ROLES = {
+      assistant: {
+        label: 'Ассистент',
+        system: 'Ты — TALOS AI, универсальный ассистент. Отвечай на русском, четко, структурировано. Используй Markdown.',
+        suggestions: [
+          { t: 'Объясни', q: 'Что такое квантовые компьютеры простыми словами?' },
+          { t: 'Идея', q: '5 названий для AI-стартапа в стиле мифологии' },
+          { t: 'План', q: 'Как структурировать личный проект и не бросить его' },
+          { t: 'Совет', q: 'Как лучше учить английский по 20 минут в день' }
+        ]
+      },
+      programmer: {
+        label: 'Программист',
+        system: 'Ты — TALOS AI в режиме Программист. Пишешь чистый код, находишь ошибки, проектируешь сайты и программы. Всегда указывай язык и давай готовые фрагменты. Отвечай на русском, код — в блоках Markdown.',
+        suggestions: [
+          { t: 'Код', q: 'Напиши функцию на JavaScript: сортировка массива объектов по полю' },
+          { t: 'Баг', q: 'Почему в React useEffect срабатывает дважды и как исправить?' },
+          { t: 'Сайт', q: 'Сверстай простую лендинг-страницу HTML+CSS: герой, фичи, форма' },
+          { t: 'API', q: 'Сделай Express.js REST API: CRUD для задач (todo)' }
+        ]
+      },
+      files: {
+        label: 'Файлы',
+        system: 'Ты — TALOS AI в режиме работы с документами. Анализируешь текст, PDF, таблицы CSV. Делаешь краткие пересказы, выводы, находишь ключевые факты. Отвечай на русском.',
+        suggestions: [
+          { t: 'Пересказ', q: 'Как правильно пересказывать длинный документ по пунктам?' },
+          { t: 'Таблица', q: 'Как проанализировать CSV: найти средние и аномалии' },
+          { t: 'Структура', q: 'Предложи структуру отчёта по загруженному файлу' },
+          { t: 'Сравнение', q: 'Как сравнить два документа и выписать отличия' }
+        ]
+      },
+      system: {
+        label: 'Система',
+        system: 'Ты — TALOS AI в режиме помощи с компьютером. Даёшь безопасные команды для Windows/macOS/Linux, объясняешь что они делают, предупреждаешь об опасности. Не притворяйся, что выполняешь команды сам — только советуешь. Отвечай на русском.',
+        suggestions: [
+          { t: 'Команда', q: 'Как в Windows найти файлы больше 1 ГБ через PowerShell?' },
+          { t: 'Процессы', q: 'Как завершить зависший процесс в Windows и Linux' },
+          { t: 'Git', q: 'Команды: создать репозиторий, первый коммит, push на GitHub' },
+          { t: 'Сеть', q: 'Как узнать свой IP и проверить доступность сайта из терминала' }
+        ]
+      }
+    };
+
+    // ========== Init libs ==========
+    function initMarkdown() {
+      try {
+        if (typeof marked !== 'undefined' && marked.setOptions) {
+          marked.setOptions({
+            breaks: true, gfm: true,
+            highlight: function(code, lang) {
+              try {
+                if (typeof hljs !== 'undefined') {
+                  if (lang && hljs.getLanguage(lang)) return hljs.highlight(code, { language: lang }).value;
+                  return hljs.highlightAuto(code).value;
+                }
+              } catch (e) {}
+              return code;
+            }
+          });
+          markedReady = true;
+        }
+      } catch (e) { markedReady = false; }
+      try {
+        if (typeof pdfjsLib !== 'undefined') {
+          pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+      } catch (e) {}
+    }
+
+    var activeRecognition = null;
+    var voiceSupported = false;
+    var voiceSessionId = 0;
+    var micStream = null;
+    var voiceGotResult = false;
+    var voiceRestarts = 0;
+
+    function initVoice() {
+      var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      voiceSupported = !!SR;
+      recognition = voiceSupported;
+    }
+
+    function setVoiceUI(listening, text) {
+      var mic = document.getElementById('mic-btn');
+      var overlay = document.getElementById('voice-overlay');
+      var partial = document.getElementById('voice-partial');
+      if (mic) {
+        if (listening) mic.classList.add('recording');
+        else mic.classList.remove('recording');
+      }
+      if (overlay) {
+        if (listening) overlay.classList.add('show');
+        else overlay.classList.remove('show');
+      }
+      if (partial && typeof text === 'string') partial.textContent = text;
+    }
+
+    function releaseMicStream() {
+      try {
+        if (micStream) {
+          micStream.getTracks().forEach(function(t) { t.stop(); });
+        }
+      } catch (e) {}
+      micStream = null;
+    }
+
+    function ensureMicPermission() {
+      // Сначала явно просим микрофон — так стабильнее, чем сразу SpeechRecognition
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        return Promise.resolve(true);
+      }
+      return navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream) {
+        micStream = stream;
+        // Сразу останавливаем треки — нам нужно только разрешение, не поток
+        try { stream.getTracks().forEach(function(t) { t.stop(); }); } catch (e) {}
+        micStream = null;
+        return true;
+      });
+    }
+
+    function bindRecognitionHandlers(rec, sessionId) {
+      rec.onstart = function() {
+        if (sessionId !== voiceSessionId) return;
+        isListening = true;
+        voiceGotResult = false;
+        setVoiceUI(true, 'Говорите...');
+      };
+
+      rec.onresult = function(e) {
+        if (sessionId !== voiceSessionId) return;
+        var partial = '';
+        var finalText = '';
+        for (var i = e.resultIndex; i < e.results.length; i++) {
+          var t = (e.results[i][0] && e.results[i][0].transcript) || '';
+          if (e.results[i].isFinal) finalText += t;
+          else partial += t;
+        }
+        var shown = (finalText || partial || '').trim();
+        if (shown) setVoiceUI(true, shown);
+
+        if (finalText && finalText.trim()) {
+          voiceGotResult = true;
+          var spoken = finalText.trim();
+          forceStopVoice();
+          var input = document.getElementById('chat-input');
+          if (input) {
+            input.value = (input.value ? input.value + ' ' : '') + spoken;
+            autoResize(input);
+          }
+          sendMessage();
+        }
+      };
+
+      rec.onerror = function(e) {
+        if (sessionId !== voiceSessionId) return;
+        var err = (e && e.error) || '';
+        if (err === 'aborted') return;
+        if (err === 'no-speech') {
+          // Просто ждём — continuous:false завершит сессию через onend
+          setVoiceUI(true, 'Не слышу. Повторите...');
+          return;
+        }
+        if (err === 'not-allowed' || err === 'service-not-allowed') {
+          toast('Микрофон запрещён. Разрешите доступ и нажмите 🎤 снова.');
+          forceStopVoice();
+          return;
+        }
+        if (err === 'audio-capture') {
+          toast('Микрофон не найден или занят другим приложением.');
+          forceStopVoice();
+          return;
+        }
+        if (err === 'network') {
+          // Частая ошибка Chrome: нет связи с сервером распознавания Google
+          // или файл открыт как file://
+          var isFile = (location.protocol === 'file:');
+          toast(isFile
+            ? 'Ошибка сети речи. Откройте TALOS через локальный сервер (не file://).'
+            : 'Ошибка сети распознавания. Проверьте интернет и отключите блокировщики.');
+          forceStopVoice();
+          return;
+        }
+        if (err === 'language-not-supported') {
+          toast('Язык не поддерживается. В настройках выберите English или русский.');
+          forceStopVoice();
+          return;
+        }
+        console.warn('Speech error:', err);
+      };
+
+      rec.onend = function() {
+        if (sessionId !== voiceSessionId) return;
+        // Не больше 1 автоперезапуска за сессию (после окна разрешений)
+        if (isListening && !voiceGotResult && voiceRestarts < 1) {
+          voiceRestarts += 1;
+          setTimeout(function() {
+            if (sessionId !== voiceSessionId || !isListening) return;
+            try {
+              var again = buildRecognition();
+              if (!again) { forceStopVoice(); return; }
+              activeRecognition = again;
+              bindRecognitionHandlers(again, sessionId);
+              again.start();
+            } catch (err) {
+              forceStopVoice();
+            }
+          }, 400);
+          return;
+        }
+        if (isListening) {
+          isListening = false;
+          setVoiceUI(false);
+        }
+        activeRecognition = null;
+      };
+    }
+
+    function buildRecognition() {
+      var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) return null;
+      var rec = new SR();
+      // continuous:false стабильнее; interimResults — живой текст
+      rec.continuous = false;
+      rec.interimResults = true;
+      rec.maxAlternatives = 1;
+      rec.lang = (getSettings().voiceLang) || 'ru-RU';
+      return rec;
+    }
+
+    // ========== Storage ==========
+    function safeGet(key, fallback) {
+      try { var v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; }
+    }
+    function safeSet(key, value) {
+      try { localStorage.setItem(key, JSON.stringify(value)); return true; }
+      catch (e) { toast('Не удалось сохранить (localStorage)'); return false; }
+    }
+
+    function loadChats() {
+      chats = safeGet('talos-chats', []);
+      if (!Array.isArray(chats)) chats = [];
+      if (!chats.length) createNewChat(true);
+      else { currentChatId = chats[0].id; renderChatHistory(); renderMessages(); }
+    }
+    function saveChats() { safeSet('talos-chats', chats); }
+    function getCurrentChat() { return chats.find(function(c) { return c.id === currentChatId; }) || null; }
+
+    // ========== Roles ==========
+    function setRole(role) {
+      currentRole = role;
+      document.querySelectorAll('.role-pill').forEach(function(p) {
+        p.classList.toggle('active', p.getAttribute('data-role') === role);
+      });
+      var badge = document.getElementById('role-badge');
+      if (badge) badge.textContent = ROLES[role].label;
+      updateEmptyState();
+      toast('Режим: ' + ROLES[role].label);
+    }
+
+    function updateEmptyState() {
+      var r = ROLES[currentRole];
+      var desc = document.getElementById('empty-desc');
+      if (desc) {
+        if (currentRole === 'programmer') desc.textContent = 'Пишу код, ищу ошибки, собираю сайты и программы.';
+        else if (currentRole === 'files') desc.textContent = 'Читаю PDF и документы, анализирую таблицы, пересказываю большие файлы.';
+        else if (currentRole === 'system') desc.textContent = 'Подскажу команды и как управлять компьютером — с вашего разрешения.';
+        else desc.textContent = 'Страж знаний. Говори голосом, пиши код, анализируй файлы — выбери режим слева.';
+      }
+      var box = document.getElementById('suggestions');
+      if (!box) return;
+      box.innerHTML = r.suggestions.map(function(s) {
+        return '<div class="suggestion" onclick="useSuggestionText(\'' + s.q.replace(/'/g, "\\'") + '\')"><strong>' + s.t + '</strong>' + s.q + '</div>';
+      }).join('');
+    }
+
+    function useSuggestionText(q) {
+      var input = document.getElementById('chat-input');
+      if (input) { input.value = q; autoResize(input); }
+      sendMessage();
+    }
+
+    // ========== Navigation ==========
+    function showPage(page) {
+      document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+      document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
+      var el = document.getElementById('page-' + page);
+      if (el) el.classList.add('active');
+      var nav = document.querySelector('.nav-item[data-page="' + page + '"]');
+      if (nav) nav.classList.add('active');
+      closeMobileSidebar();
+      if (page === 'projects') renderProjects();
+      if (page === 'chat' && (currentRole === 'files' || currentRole === 'system')) { /* keep role */ }
+      else if (page === 'files') setRole('files');
+      else if (page === 'system') setRole('system');
+    }
+    function toggleSidebar() { document.getElementById('sidebar').classList.toggle('collapsed'); }
+    function openMobileSidebar() { document.getElementById('sidebar').classList.add('open'); document.getElementById('mobile-overlay').classList.add('show'); }
+    function closeMobileSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('mobile-overlay').classList.remove('show'); }
+
+    // ========== Chats ==========
+    function createNewChat(silent) {
+      try {
+        var id = 'chat_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+        chats.unshift({ id: id, title: 'Новый чат', messages: [], createdAt: Date.now(), updatedAt: Date.now() });
+        currentChatId = id;
+        attachedFiles = [];
+        renderAttachBar();
+        saveChats();
+        renderChatHistory();
+        renderMessages();
+        showPage('chat');
+        if (!silent) toast('Новый чат создан');
+        var input = document.getElementById('chat-input');
+        if (input) input.focus();
+      } catch (e) { toast('Ошибка: ' + e.message); }
+    }
+
+    function switchChat(id) {
+      currentChatId = id; attachedFiles = []; renderAttachBar();
+      renderChatHistory(); renderMessages(); showPage('chat'); closeMobileSidebar();
+    }
+
+    function deleteChat(id, e) {
+      if (e) e.stopPropagation();
+      if (!confirm('Удалить чат?')) return;
+      chats = chats.filter(function(c) { return c.id !== id; });
+      if (currentChatId === id) {
+        if (chats.length) currentChatId = chats[0].id;
+        else createNewChat(true);
+      }
+      saveChats(); renderChatHistory(); renderMessages(); toast('Удалено');
+    }
+
+    function clearCurrentChat() {
+      var chat = getCurrentChat();
+      if (!chat || !chat.messages.length) return;
+      if (!confirm('Очистить чат?')) return;
+      chat.messages = []; chat.title = 'Новый чат'; chat.updatedAt = Date.now();
+      saveChats(); renderChatHistory(); renderMessages(); toast('Очищено');
+    }
+
+    function renderChatHistory() {
+      var container = document.getElementById('chat-history');
+      if (!container) return;
+      var q = ((document.getElementById('search-chats') || {}).value || '').toLowerCase();
+      var filtered = chats.filter(function(c) { return !q || (c.title || '').toLowerCase().indexOf(q) !== -1; });
+      container.innerHTML = filtered.map(function(c) {
+        return '<div class="chat-item ' + (c.id === currentChatId ? 'active' : '') + '" onclick="switchChat(\'' + c.id + '\')">' +
+          '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;opacity:.6"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>' +
+          '<span class="title">' + escapeHtml(c.title || 'Чат') + '</span>' +
+          '<button class="delete-btn" onclick="deleteChat(\'' + c.id + '\', event)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>';
+      }).join('');
+    }
+    function filterChats() { renderChatHistory(); }
+
+    function updateChatTitle(text) {
+      var chat = getCurrentChat();
+      if (!chat || chat.title !== 'Новый чат' || !text) return;
+      chat.title = text.slice(0, 48) + (text.length > 48 ? '…' : '');
+      var el = document.getElementById('chat-title');
+      if (el) el.textContent = chat.title;
+      saveChats(); renderChatHistory();
+    }
+
+    // ========== Files ==========
+    async function handleFiles(event, fromPage) {
+      var files = event.target.files;
+      if (!files || !files.length) return;
+      for (var i = 0; i < files.length; i++) {
+        var f = files[i];
+        try {
+          var text = await readFileContent(f);
+          attachedFiles.push({ name: f.name, type: f.type, size: f.size, content: text });
+        } catch (err) {
+          toast('Не удалось прочитать: ' + f.name);
+        }
+      }
+      event.target.value = '';
+      renderAttachBar();
+      if (fromPage) {
+        renderFilesPageList();
+        setRole('files');
+        showPage('chat');
+        toast('Файл загружен — задайте вопрос в чате');
+      } else {
+        toast('Файл прикреплён (' + attachedFiles.length + ')');
+      }
+    }
+
+    function readFileContent(file) {
+      return new Promise(function(resolve, reject) {
+        var name = (file.name || '').toLowerCase();
+        if (name.endsWith('.pdf')) {
+          if (typeof pdfjsLib === 'undefined') { reject(new Error('PDF.js не загружен')); return; }
+          var reader = new FileReader();
+          reader.onload = async function() {
+            try {
+              var pdf = await pdfjsLib.getDocument({ data: reader.result }).promise;
+              var parts = [];
+              var maxPages = Math.min(pdf.numPages, 40);
+              for (var p = 1; p <= maxPages; p++) {
+                var page = await pdf.getPage(p);
+                var content = await page.getTextContent();
+                parts.push(content.items.map(function(it) { return it.str; }).join(' '));
+              }
+              if (pdf.numPages > maxPages) parts.push('\n[... обрезано, всего страниц: ' + pdf.numPages + ']');
+              resolve(parts.join('\n\n'));
+            } catch (e) { reject(e); }
+          };
+          reader.onerror = reject;
+          reader.readAsArrayBuffer(file);
+        } else {
+          var reader = new FileReader();
+          reader.onload = function() {
+            var t = String(reader.result || '');
+            if (t.length > 120000) t = t.slice(0, 120000) + '\n\n[... файл обрезан до 120k символов]';
+            resolve(t);
+          };
+          reader.onerror = reject;
+          reader.readAsText(file);
+        }
+      });
+    }
+
+    function renderAttachBar() {
+      var bar = document.getElementById('attach-bar');
+      if (!bar) return;
+      if (!attachedFiles.length) { bar.classList.remove('show'); bar.innerHTML = ''; return; }
+      bar.classList.add('show');
+      bar.innerHTML = attachedFiles.map(function(f, i) {
+        return '<div class="attach-item"><span>📎 ' + escapeHtml(f.name) + '</span><button onclick="removeAttach(' + i + ')">&times;</button></div>';
+      }).join('');
+    }
+
+    function removeAttach(i) {
+      attachedFiles.splice(i, 1);
+      renderAttachBar();
+    }
+
+    function renderFilesPageList() {
+      var list = document.getElementById('files-list');
+      if (!list) return;
+      if (!attachedFiles.length) { list.innerHTML = ''; return; }
+      list.innerHTML = attachedFiles.map(function(f, i) {
+        return '<div class="file-chip" style="display:flex;margin-bottom:8px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>' +
+          escapeHtml(f.name) + ' · ' + Math.round((f.content || '').length / 1000) + 'k симв. <button style="margin-left:8px;background:none;border:none;color:var(--muted);cursor:pointer" onclick="removeAttach(' + i + ');renderFilesPageList()">&times;</button></div>';
+      }).join('');
+    }
+
+    // ========== Messages ==========
+    function renderMessages() {
+      var chat = getCurrentChat();
+      var list = document.getElementById('messages-list');
+      var empty = document.getElementById('empty-state');
+      var titleEl = document.getElementById('chat-title');
+      if (!list || !empty) return;
+      if (!chat || !chat.messages || !chat.messages.length) {
+        list.innerHTML = ''; empty.style.display = 'flex';
+        if (titleEl) titleEl.textContent = 'Новый чат';
+        updateEmptyState();
+        return;
+      }
+      empty.style.display = 'none';
+      if (titleEl) titleEl.textContent = chat.title || 'Чат';
+      list.innerHTML = chat.messages.map(function(m, i) {
+        var isUser = m.role === 'user';
+        var content = isUser ? escapeHtml(m.content) : renderMarkdown(m.content);
+        var fileHtml = '';
+        if (isUser && m.files && m.files.length) {
+          fileHtml = m.files.map(function(fn) {
+            return '<div class="file-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>' + escapeHtml(fn) + '</div>';
+          }).join('');
+        }
+        var avatarSvg = isUser
+          ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8a8070" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'
+          : '<svg width="18" height="18" viewBox="0 0 48 48" fill="none"><path d="M24 6L10 11v10c0 8 5 15 14 17 9-2 14-9 14-17V11L24 6z" fill="#c9a227"/><path d="M24 14L16 17v6c0 4.5 3 8 8 9 5-1 8-4.5 8-9v-6L24 14z" fill="#0a0908" opacity=".85"/><path d="M24 20v8M21 23h6" stroke="#e8c547" stroke-width="2" stroke-linecap="round"/></svg>';
+        var actions = !isUser
+          ? '<div class="msg-actions">' +
+            '<button onclick="copyMessage(' + i + ')">Копировать</button>' +
+            '<button onclick="speakMessage(' + i + ')">🔊 Озвучить</button>' +
+            '<button onclick="regenerate(' + i + ')">Перегенерировать</button></div>'
+          : '';
+        return '<div class="msg ' + (isUser ? 'user' : 'bot') + '">' +
+          '<div class="avatar ' + (isUser ? 'user-av' : 'bot') + '">' + avatarSvg + '</div>' +
+          '<div class="msg-body"><div class="bubble">' + fileHtml +
+          (isUser ? '<p>' + content + '</p>' : '<div class="md">' + content + '</div>') +
+          '</div>' + actions + '</div></div>';
+      }).join('');
+      list.querySelectorAll('pre').forEach(function(pre) {
+        if (pre.querySelector('.code-copy')) return;
+        var btn = document.createElement('button');
+        btn.className = 'code-copy'; btn.textContent = 'Copy';
+        btn.onclick = function() {
+          var code = (pre.querySelector('code') && pre.querySelector('code').textContent) || pre.textContent;
+          navigator.clipboard.writeText(code).then(function() { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy'; }, 1500); });
+        };
+        pre.style.position = 'relative'; pre.appendChild(btn);
+      });
+      scrollToBottom();
+    }
+
+    function renderMarkdown(text) {
+      if (!text) return '';
+      try { if (markedReady && typeof marked !== 'undefined' && marked.parse) return marked.parse(text); } catch (e) {}
+      return escapeHtml(text).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\n/g, '<br>');
+    }
+    function escapeHtml(text) {
+      if (text == null) return '';
+      var d = document.createElement('div'); d.textContent = String(text); return d.innerHTML;
+    }
+    function scrollToBottom() {
+      var c = document.getElementById('chat-content');
+      if (c) requestAnimationFrame(function() { c.scrollTop = c.scrollHeight; });
+    }
+
+    function handleKey(e) {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+    }
+    function autoResize(el) {
+      if (!el) return;
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+    }
+
+    // ========== Voice ==========
+    function toggleVoice() {
+      if (!voiceSupported) {
+        toast('Голос не поддерживается. Откройте в Chrome или Edge (не Firefox).');
+        return;
+      }
+      if (isListening) {
+        forceStopVoice();
+        return;
+      }
+      startListening();
+    }
+
+    function startListening() {
+      voiceSessionId += 1;
+      var sessionId = voiceSessionId;
+      voiceGotResult = false;
+      voiceRestarts = 0;
+      isListening = true;
+      setVoiceUI(true, 'Запрос доступа к микрофону...');
+
+      // 1) Явно получаем разрешение микрофона
+      ensureMicPermission().then(function() {
+        if (sessionId !== voiceSessionId) return;
+        setVoiceUI(true, 'Слушаю... Говорите');
+
+        // 2) Небольшая пауза после permission — иначе Chrome часто даёт network/aborted
+        setTimeout(function() {
+          if (sessionId !== voiceSessionId) return;
+          try {
+            if (activeRecognition) {
+              try {
+                activeRecognition.onend = null;
+                activeRecognition.onerror = null;
+                activeRecognition.onresult = null;
+                activeRecognition.stop();
+              } catch (e) {}
+              activeRecognition = null;
+            }
+            var rec = buildRecognition();
+            if (!rec) {
+              forceStopVoice();
+              toast('Распознавание речи недоступно в этом браузере');
+              return;
+            }
+            activeRecognition = rec;
+            bindRecognitionHandlers(rec, sessionId);
+            rec.start();
+          } catch (e) {
+            console.warn(e);
+            // Повтор через 500мс
+            setTimeout(function() {
+              if (sessionId !== voiceSessionId) return;
+              try {
+                var rec2 = buildRecognition();
+                if (!rec2) { forceStopVoice(); return; }
+                activeRecognition = rec2;
+                bindRecognitionHandlers(rec2, sessionId);
+                rec2.start();
+              } catch (e2) {
+                forceStopVoice();
+                toast('Не удалось запустить распознавание. Обновите страницу.');
+              }
+            }, 500);
+          }
+        }, 350);
+      }).catch(function(err) {
+        forceStopVoice();
+        var msg = (err && err.name === 'NotAllowedError')
+          ? 'Вы запретили микрофон. Разрешите в настройках сайта и нажмите 🎤.'
+          : 'Нет доступа к микрофону. Проверьте разрешения браузера.';
+        toast(msg);
+      });
+    }
+
+    function stopVoice() {
+      forceStopVoice();
+    }
+
+    function forceStopVoice() {
+      voiceSessionId += 1; // инвалидируем колбэки текущей сессии
+      isListening = false;
+      voiceGotResult = false;
+      setVoiceUI(false);
+      try {
+        if (activeRecognition) {
+          activeRecognition.onend = null;
+          activeRecognition.onerror = null;
+          activeRecognition.onresult = null;
+          activeRecognition.onstart = null;
+          activeRecognition.abort ? activeRecognition.abort() : activeRecognition.stop();
+        }
+      } catch (e) {}
+      activeRecognition = null;
+      releaseMicStream();
+    }
+
+    function speakText(text) {
+      if (!window.speechSynthesis) { toast('Озвучка не поддерживается'); return; }
+      window.speechSynthesis.cancel();
+      var clean = String(text || '').replace(/```[\s\S]*?```/g, ' код. ').replace(/[#*_`]/g, ' ').replace(/\s+/g, ' ').trim();
+      if (!clean) return;
+      var u = new SpeechSynthesisUtterance(clean.slice(0, 3000));
+      u.lang = (getSettings().voiceLang) || 'ru-RU';
+      u.rate = 1;
+      isSpeaking = true;
+      var btn = document.getElementById('voice-speak-btn');
+      if (btn) btn.classList.add('speaking');
+      u.onend = u.onerror = function() {
+        isSpeaking = false;
+        if (btn) btn.classList.remove('speaking');
+      };
+      window.speechSynthesis.speak(u);
+    }
+
+    function speakMessage(idx) {
+      var chat = getCurrentChat();
+      if (!chat || !chat.messages[idx]) return;
+      speakText(chat.messages[idx].content);
+    }
+
+    function toggleSpeakLast() {
+      if (isSpeaking) { window.speechSynthesis.cancel(); isSpeaking = false; document.getElementById('voice-speak-btn').classList.remove('speaking'); return; }
+      var chat = getCurrentChat();
+      if (!chat || !chat.messages.length) return;
+      for (var i = chat.messages.length - 1; i >= 0; i--) {
+        if (chat.messages[i].role === 'assistant') { speakText(chat.messages[i].content); return; }
+      }
+    }
+
+    // ========== Send ==========
+    async function sendMessage() {
+      if (isGenerating) return;
+      var input = document.getElementById('chat-input');
+      if (!input) return;
+      var text = input.value.trim();
+      if (!text && !attachedFiles.length) return;
+
+      var chat = getCurrentChat();
+      if (!chat) { createNewChat(true); chat = getCurrentChat(); }
+      if (!chat) { toast('Нет чата'); return; }
+
+      var displayText = text || 'Проанализируй прикреплённые файлы.';
+      var fileNames = attachedFiles.map(function(f) { return f.name; });
+      var contextBlock = '';
+      if (attachedFiles.length) {
+        contextBlock = attachedFiles.map(function(f) {
+          return '\n\n--- Файл: ' + f.name + ' ---\n' + f.content;
+        }).join('');
+      }
+
+      input.value = '';
+      autoResize(input);
+
+      chat.messages.push({ role: 'user', content: displayText, files: fileNames.length ? fileNames : undefined });
+      updateChatTitle(displayText);
+      chat.updatedAt = Date.now();
+      saveChats();
+      renderMessages();
+
+      var apiMessages = chat.messages.map(function(m, idx) {
+        if (idx === chat.messages.length - 1 && contextBlock) {
+          return { role: 'user', content: displayText + contextBlock };
+        }
+        return { role: m.role, content: m.content };
+      });
+
+      attachedFiles = [];
+      renderAttachBar();
+
+      isGenerating = true;
+      var sendBtn = document.getElementById('send-btn');
+      if (sendBtn) sendBtn.disabled = true;
+
+      var list = document.getElementById('messages-list');
+      var typingId = 'typing-' + Date.now();
+      var typingDiv = document.createElement('div');
+      typingDiv.className = 'msg bot'; typingDiv.id = typingId;
+      typingDiv.innerHTML = '<div class="avatar bot"><svg width="18" height="18" viewBox="0 0 48 48" fill="none"><path d="M24 6L10 11v10c0 8 5 15 14 17 9-2 14-9 14-17V11L24 6z" fill="#c9a227"/></svg></div><div class="msg-body"><div class="bubble"><div class="typing-indicator"><span></span><span></span><span></span></div></div></div>';
+      if (list) list.appendChild(typingDiv);
+      scrollToBottom();
+
+      var settings = getSettings();
+      var reply = '';
+      abortController = new AbortController();
+
+      try {
+        if (settings.chatKey && settings.chatUrl) {
+          try { reply = await streamChat(apiMessages, settings, typingId); }
+          catch (err) {
+            if (err.name === 'AbortError') reply = '*(Остановлено)*';
+            else {
+              try { reply = await nonStreamChat(apiMessages, settings); }
+              catch (err2) {
+                reply = 'Не удалось получить ответ.\n\n**Ошибка:** ' + (err2.message || err.message) +
+                  '\n\nИспользуйте **OpenRouter** (`https://openrouter.ai/api/v1`) — он работает из браузера.';
+              }
+            }
+          }
+        } else {
+          await sleep(500);
+          reply = getDemoReply(displayText);
+        }
+      } catch (e) { reply = 'Ошибка: ' + e.message; }
+
+      var typingEl = document.getElementById(typingId);
+      if (typingEl) typingEl.remove();
+
+      if (reply) {
+        chat.messages.push({ role: 'assistant', content: reply });
+        chat.updatedAt = Date.now();
+        saveChats();
+        renderMessages();
+        if (autoSpeak || getSettings().autoSpeak === '1') speakText(reply);
+      }
+
+      isGenerating = false;
+      if (sendBtn) sendBtn.disabled = false;
+      abortController = null;
+    }
+
+    function getSystemPrompt(settings) {
+      var base = (settings.systemPrompt || ROLES.assistant.system);
+      var roleSys = (ROLES[currentRole] && ROLES[currentRole].system) || base;
+      return roleSys;
+    }
+
+    async function nonStreamChat(messages, settings) {
+      var url = settings.chatUrl.replace(/\/$/, '') + '/chat/completions';
+      var res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + settings.chatKey },
+        body: JSON.stringify({
+          model: settings.chatModel || 'openai/gpt-4o-mini',
+          messages: [{ role: 'system', content: getSystemPrompt(settings) }].concat(messages),
+          temperature: 0.7, stream: false
+        }),
+        signal: abortController && abortController.signal
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + (await res.text()).slice(0, 200));
+      var data = await res.json();
+      return (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || 'Пустой ответ.';
+    }
+
+    async function streamChat(messages, settings, typingId) {
+      var url = settings.chatUrl.replace(/\/$/, '') + '/chat/completions';
+      var res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + settings.chatKey },
+        body: JSON.stringify({
+          model: settings.chatModel || 'openai/gpt-4o-mini',
+          messages: [{ role: 'system', content: getSystemPrompt(settings) }].concat(messages),
+          temperature: 0.7, stream: true
+        }),
+        signal: abortController && abortController.signal
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + (await res.text()).slice(0, 200));
+      if (!res.body || !res.body.getReader) {
+        var data = await res.json();
+        return (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || 'Пустой ответ.';
+      }
+      var reader = res.body.getReader();
+      var decoder = new TextDecoder();
+      var full = '', buffer = '';
+      var typingEl = document.getElementById(typingId);
+      if (typingEl) { var b = typingEl.querySelector('.bubble'); if (b) b.innerHTML = '<div class="md"></div>'; }
+      while (true) {
+        var result = await reader.read();
+        if (result.done) break;
+        buffer += decoder.decode(result.value, { stream: true });
+        var lines = buffer.split('\n'); buffer = lines.pop() || '';
+        for (var i = 0; i < lines.length; i++) {
+          var trimmed = lines[i].trim();
+          if (!trimmed || trimmed.indexOf('data:') !== 0) continue;
+          var dataStr = trimmed.slice(5).trim();
+          if (dataStr === '[DONE]') continue;
+          try {
+            var json = JSON.parse(dataStr);
+            var delta = (json.choices && json.choices[0] && json.choices[0].delta && json.choices[0].delta.content) || '';
+            if (delta) {
+              full += delta;
+              if (typingEl) {
+                var md = typingEl.querySelector('.md');
+                if (md) md.innerHTML = renderMarkdown(full + '▌');
+                scrollToBottom();
+              }
+            }
+          } catch (e) {}
+        }
+      }
+      return full || 'Пустой ответ.';
+    }
+
+    function getDemoReply(userText) {
+      var t = (userText || '').toLowerCase();
+      if (currentRole === 'programmer') {
+        return 'Режим **Программист**.\n\nПример:\n\n```javascript\nfunction sortBy(arr, key, order = \'asc\') {\n  return [...arr].sort((a, b) => {\n    const av = a[key], bv = b[key];\n    if (av < bv) return order === \'asc\' ? -1 : 1;\n    if (av > bv) return order === \'asc\' ? 1 : -1;\n    return 0;\n  });\n}\n```\n\nПодключите API-ключ в Настройках — буду писать код под ваши задачи и находить ошибки.';
+      }
+      if (t.indexOf('привет') !== -1 || t.indexOf('здравств') !== -1) {
+        return 'Привет. Я **TALOS AI**.\n\nДоступно:\n- 🎤 **Голос** — кнопка микрофона\n- 💻 **Программист** — код и сайты\n- 📄 **Файлы** — PDF, таблицы, пересказ\n- 🖥 **Система** — команды для ПК (с вашим разрешением)\n\nДля полных ответов укажите API-ключ (лучше OpenRouter).';
+      }
+      return 'Запрос: «' + userText.slice(0, 80) + (userText.length > 80 ? '…' : '') + '»\n\n**Демо-режим** — укажите API-ключ в Настройках (OpenRouter рекомендуется).\n\nТекущий режим: **' + ROLES[currentRole].label + '**.';
+    }
+
+    function sleep(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }
+
+    function copyMessage(idx) {
+      var chat = getCurrentChat();
+      if (!chat) return;
+      navigator.clipboard.writeText((chat.messages[idx] && chat.messages[idx].content) || '').then(function() { toast('Скопировано'); });
+    }
+
+    async function regenerate(idx) {
+      var chat = getCurrentChat();
+      if (!chat || isGenerating) return;
+      var userIdx = idx - 1;
+      if (userIdx < 0 || !chat.messages[userIdx] || chat.messages[userIdx].role !== 'user') return;
+      var userText = chat.messages[userIdx].content;
+      chat.messages = chat.messages.slice(0, userIdx);
+      saveChats();
+      var input = document.getElementById('chat-input');
+      if (input) input.value = userText;
+      sendMessage();
+    }
+
+    function exportChat() {
+      var chat = getCurrentChat();
+      if (!chat || !chat.messages.length) { toast('Нечего экспортировать'); return; }
+      var text = chat.messages.map(function(m) {
+        return '**' + (m.role === 'user' ? 'Вы' : 'TALOS AI') + ':**\n' + m.content;
+      }).join('\n\n---\n\n');
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([text], { type: 'text/markdown' }));
+      a.download = (chat.title || 'chat') + '.md';
+      a.click();
+      toast('Экспортировано');
+    }
+
+    function askSystem(q) {
+      setRole('system');
+      showPage('chat');
+      var input = document.getElementById('chat-input');
+      if (input) { input.value = q; autoResize(input); }
+      sendMessage();
+    }
+
+    // ========== Settings ==========
+    function getSettings() { return safeGet('talos-settings', {}); }
+
+    function saveSettings() {
+      try {
+        var s = {
+          chatUrl: val('set-chat-url'), chatKey: val('set-chat-key'), chatModel: val('set-chat-model'),
+          systemPrompt: val('set-system'),
+          imgUrl: val('set-img-url'), imgKey: val('set-img-key'), imgModel: val('set-img-model'),
+          vidUrl: val('set-vid-url'), vidKey: val('set-vid-key'),
+          autoSpeak: val('set-auto-speak'), voiceLang: val('set-voice-lang')
+        };
+        if (safeSet('talos-settings', s)) {
+          autoSpeak = s.autoSpeak === '1';
+          toast('Настройки сохранены ✓');
+        }
+      } catch (e) { toast('Ошибка: ' + e.message); }
+    }
+    function val(id) { var el = document.getElementById(id); return el ? String(el.value || '').trim() : ''; }
+
+    function loadSettingsForm() {
+      var s = getSettings();
+      setIf('set-chat-url', s.chatUrl); setIf('set-chat-key', s.chatKey); setIf('set-chat-model', s.chatModel);
+      setIf('set-system', s.systemPrompt);
+      setIf('set-img-url', s.imgUrl); setIf('set-img-key', s.imgKey); setIf('set-img-model', s.imgModel);
+      setIf('set-vid-url', s.vidUrl); setIf('set-vid-key', s.vidKey);
+      setIf('set-auto-speak', s.autoSpeak); setIf('set-voice-lang', s.voiceLang);
+      autoSpeak = s.autoSpeak === '1';
+    }
+    function setIf(id, v) { var el = document.getElementById(id); if (el && v) el.value = v; }
+
+    async function testConnection() {
+      var status = document.getElementById('conn-status');
+      if (!status) return;
+      status.innerHTML = '<span class="status-badge">Проверяю...</span>';
+      var chatUrl = val('set-chat-url'), chatKey = val('set-chat-key'), chatModel = val('set-chat-model');
+      if (!chatKey || !chatUrl) { status.innerHTML = '<span class="status-badge err">Укажите URL и ключ</span>'; return; }
+      try {
+        var res = await fetch(chatUrl.replace(/\/$/, '') + '/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + chatKey },
+          body: JSON.stringify({ model: chatModel || 'openai/gpt-4o-mini', messages: [{ role: 'user', content: 'Hi' }], max_tokens: 5 })
+        });
+        status.innerHTML = res.ok
+          ? '<span class="status-badge ok">✓ Успешно</span>'
+          : '<span class="status-badge err">Ошибка ' + res.status + '</span>';
+      } catch (err) {
+        status.innerHTML = '<span class="status-badge err">' + (err.message || 'Failed to fetch').slice(0, 48) + '</span>';
+      }
+    }
+
+    // ========== Images ==========
+    function normalizeImageSize(size) {
+      var allowed = { '1024x1024': 1, '1792x1024': 1, '1024x1792': 1 };
+      if (allowed[size]) return size;
+      // любые «2K/4K» и неизвестные → квадрат DALL·E 3
+      return '1024x1024';
+    }
+
+    function parseApiError(status, text) {
+      var msg = 'HTTP ' + status;
+      try {
+        var j = JSON.parse(text);
+        if (j.error && j.error.message) msg += ': ' + j.error.message;
+        else if (j.message) msg += ': ' + j.message;
+        else msg += ': ' + text.slice(0, 160);
+      } catch (e) {
+        if (text) msg += ': ' + String(text).slice(0, 160);
+      }
+      return msg;
+    }
+
+    function extractImageUrl(data) {
+      if (!data) return null;
+      // OpenAI / OpenRouter classic
+      if (data.data && data.data[0]) {
+        if (data.data[0].url) return data.data[0].url;
+        if (data.data[0].b64_json) return 'data:image/png;base64,' + data.data[0].b64_json;
+      }
+      // некоторые прокси
+      if (data.url) return data.url;
+      if (data.image) return data.image;
+      if (data.images && data.images[0]) return data.images[0];
+      // chat-style response with markdown image
+      try {
+        var content = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+        if (typeof content === 'string') {
+          var m = content.match(/!\[[^\]]*\]\((https?:\/\/[^)]+)\)/);
+          if (m) return m[1];
+          var m2 = content.match(/https?:\/\/\S+\.(png|jpg|jpeg|webp)/i);
+          if (m2) return m2[0];
+        }
+        if (Array.isArray(content)) {
+          for (var i = 0; i < content.length; i++) {
+            if (content[i].type === 'image_url' && content[i].image_url) {
+              return content[i].image_url.url || content[i].image_url;
+            }
+          }
+        }
+      } catch (e) {}
+      return null;
+    }
+
+    async function postImageJson(baseUrl, key, body) {
+      var res = await fetch(baseUrl.replace(/\/$/, '') + '/images/generations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + key
+        },
+        body: JSON.stringify(body)
+      });
+      var text = await res.text();
+      var data = null;
+      try { data = JSON.parse(text); } catch (e) {}
+      return { ok: res.ok, status: res.status, text: text, data: data };
+    }
+
+    async function generateImage() {
+      var prompt = val('img-prompt');
+      if (!prompt) { toast('Введите описание'); return; }
+      var s = getSettings();
+      // ключ изображений или общий chat-ключ
+      var imgKey = s.imgKey || s.chatKey;
+      var imgUrl = s.imgUrl || s.chatUrl || 'https://openrouter.ai/api/v1';
+      var imgModel = s.imgModel || 'dall-e-3';
+      if (!imgKey) { toast('Укажите API-ключ в Настройках (Изображения или Чат)'); return; }
+
+      var btn = document.getElementById('img-gen-btn');
+      var loading = document.getElementById('img-loading');
+      var loadingText = document.getElementById('img-loading-text');
+      var result = document.getElementById('img-result');
+      if (btn) btn.disabled = true;
+      if (loading) loading.style.display = 'block';
+      if (loadingText) loadingText.textContent = 'Генерирую изображение...';
+      if (result) result.style.display = 'none';
+
+      var size = normalizeImageSize(val('img-size') || '1024x1024');
+      var quality = val('img-quality') || 'standard';
+      var style = val('img-style') || 'vivid';
+      var negative = val('img-negative');
+      var fullPrompt = prompt.trim();
+      if (negative) fullPrompt += '. Avoid: ' + negative;
+      // лимит DALL·E ~4000 символов
+      if (fullPrompt.length > 3500) fullPrompt = fullPrompt.slice(0, 3500);
+
+      // Модель: если пользователь оставил openai/dall-e-3 на api.openai.com — упростим
+      var model = imgModel;
+      if (/api\.openai\.com/i.test(imgUrl) && model.indexOf('/') !== -1) {
+        model = model.split('/').pop(); // openai/dall-e-3 → dall-e-3
+      }
+
+      // Набор попыток: от «полного» тела к минимальному (чтобы обойти HTTP 400)
+      var attempts = [
+        { model: model, prompt: fullPrompt, n: 1, size: size, quality: quality, style: style, response_format: 'url' },
+        { model: model, prompt: fullPrompt, n: 1, size: size, quality: quality, response_format: 'url' },
+        { model: model, prompt: fullPrompt, n: 1, size: size, response_format: 'url' },
+        { model: model, prompt: fullPrompt, n: 1, size: '1024x1024' },
+        { model: model, prompt: fullPrompt, size: '1024x1024' },
+        // fallback model names
+        { model: 'dall-e-3', prompt: fullPrompt, n: 1, size: '1024x1024' },
+        { model: 'openai/dall-e-3', prompt: fullPrompt, n: 1, size: '1024x1024' }
+      ];
+
+      var lastError = '';
+      try {
+        for (var i = 0; i < attempts.length; i++) {
+          if (loadingText) loadingText.textContent = 'Попытка ' + (i + 1) + '/' + attempts.length + '...';
+          var body = attempts[i];
+          // не дублируем одинаковые запросы подряд
+          if (i > 0 && JSON.stringify(body) === JSON.stringify(attempts[i - 1])) continue;
+
+          var resp = await postImageJson(imgUrl, imgKey, body);
+          if (resp.ok && resp.data) {
+            var url = extractImageUrl(resp.data);
+            if (url) {
+              var img = document.getElementById('img-preview');
+              if (img) img.src = url;
+              var meta = document.getElementById('img-meta');
+              if (meta) meta.textContent = (body.size || size) + ' · ' + (body.model || model);
+              if (result) result.style.display = 'block';
+              toast('Изображение готово');
+              return;
+            }
+            lastError = 'Ответ без URL изображения';
+            continue;
+          }
+
+          lastError = parseApiError(resp.status, resp.text || '');
+          // 401/403 — нет смысла продолжать
+          if (resp.status === 401 || resp.status === 403) break;
+          // 404 endpoint — тоже
+          if (resp.status === 404) break;
+        }
+
+        // Последний шанс: через chat/completions (некоторые роутеры так отдают картинки)
+        if (loadingText) loadingText.textContent = 'Пробую через chat API...';
+        try {
+          var chatRes = await fetch(imgUrl.replace(/\/$/, '') + '/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + imgKey
+            },
+            body: JSON.stringify({
+              model: model,
+              messages: [
+                { role: 'user', content: 'Generate an image: ' + fullPrompt }
+              ]
+            })
+          });
+          var chatText = await chatRes.text();
+          var chatData = null;
+          try { chatData = JSON.parse(chatText); } catch (e) {}
+          if (chatRes.ok && chatData) {
+            var chatUrl = extractImageUrl(chatData);
+            if (chatUrl) {
+              var img2 = document.getElementById('img-preview');
+              if (img2) img2.src = chatUrl;
+              var meta2 = document.getElementById('img-meta');
+              if (meta2) meta2.textContent = size + ' · ' + model + ' (chat)';
+              if (result) result.style.display = 'block';
+              toast('Изображение готово');
+              return;
+            }
+          } else if (chatRes.status) {
+            lastError = lastError || parseApiError(chatRes.status, chatText);
+          }
+        } catch (e2) {}
+
+        throw new Error(lastError || 'Не удалось сгенерировать изображение');
+      } catch (err) {
+        var hint = '';
+        var m = String(err.message || '');
+        if (m.indexOf('400') !== -1) {
+          hint = ' Проверьте модель (dall-e-3) и Base URL. Для OpenAI: https://api.openai.com/v1 + dall-e-3. Размер только 1024/1792.';
+        } else if (m.indexOf('401') !== -1 || m.indexOf('403') !== -1) {
+          hint = ' Ключ неверный или нет доступа к генерации изображений.';
+        } else if (m.indexOf('404') !== -1) {
+          hint = ' Endpoint /images/generations не найден на этом Base URL.';
+        }
+        toast('Ошибка: ' + m.slice(0, 140) + hint);
+      } finally {
+        if (btn) btn.disabled = false;
+        if (loading) loading.style.display = 'none';
+      }
+    }
+
+    function downloadImage() {
+      var img = document.getElementById('img-preview');
+      if (!img || !img.src) return;
+      var a = document.createElement('a');
+      a.href = img.src; a.download = 'talos-' + Date.now() + '.png'; a.target = '_blank'; a.click();
+    }
+
+    function generateVideo() {
+      var prompt = val('vid-prompt');
+      if (!prompt) { toast('Введите описание'); return; }
+      var s = getSettings();
+      if (!s.vidKey || !s.vidUrl) { toast('Настройте провайдера видео в Настройках'); return; }
+      toast('Видео: укажите рабочий API провайдера. Большинство требуют polling.');
+    }
+
+    // ========== Projects ==========
+    function renderProjects() {
+      var list = document.getElementById('project-list');
+      var empty = document.getElementById('projects-empty');
+      if (!list || !empty) return;
+      if (!chats.length || chats.every(function(c) { return !c.messages || !c.messages.length; })) {
+        list.innerHTML = ''; empty.style.display = 'block'; return;
+      }
+      empty.style.display = 'none';
+      list.innerHTML = chats.filter(function(c) { return c.messages && c.messages.length; }).map(function(c) {
+        var date = new Date(c.updatedAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+        return '<div class="project-item" onclick="switchChat(\'' + c.id + '\')"><div class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><div class="info"><h4>' + escapeHtml(c.title) + '</h4><span>' + c.messages.length + ' сообщ. · ' + date + '</span></div></div>';
+      }).join('');
+    }
+
+    function toast(msg) {
+      var el = document.getElementById('toast');
+      if (!el) return;
+      el.textContent = msg; el.classList.add('show');
+      clearTimeout(el._t);
+      el._t = setTimeout(function() { el.classList.remove('show'); }, 2800);
+    }
+
+    function boot() {
+      initMarkdown();
+      initVoice();
+      loadChats();
+      loadSettingsForm();
+      updateEmptyState();
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+    else boot();
+  </script>
+</body>
+</html>
